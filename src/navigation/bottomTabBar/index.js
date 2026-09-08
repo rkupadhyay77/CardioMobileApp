@@ -18,9 +18,9 @@ import setStateItem from '../../state/setState/setStateItem'
 
 import {DARK_THEME_COLORS, LIGHT_THEME_COLORS} from '../../common/helper/colors'
 import { DB_KEY } from '../../common/helper/keys';
-import Orientation from 'react-native-orientation-locker'
+import Orientation from 'react-native-orientation-locker';
 import { StatsTabTapped } from '../../state/emitters';
-import {ReportsEnabledChanged, ReportsDisableChanged, GraphTypeChanged} from '../../state/emitters'
+import {ReportsEnabledChanged, ReportsDisableChanged, GraphTypeChanged, GraphEnterLandscapeMode, GraphExitLandscapeMode} from '../../state/emitters'
 import { isPLotViewTheme } from '../../common/helper/util';
 
 class CustomTabBar extends Component{
@@ -53,7 +53,17 @@ this.setState({renderStats: isPLotViewTheme() ? false : true});
   ReportsDisableChanged.addReportsDisableChangedMode(this._reportsDisableChanged)
   GraphTypeChanged.addGraphTypeChanged(this._graphTypeChanged)
 
- 
+  const parentNav = this.props.navigation;
+  if (parentNav && parentNav.addListener) {
+    this.parentWillBlurListener = parentNav.addListener('willBlur', () => {
+      console.log('[TIMER_DEBUG] BottomTabBar (parentNav): willBlur - emitting GraphEnterLandscapeMode');
+      GraphEnterLandscapeMode.emit('GRAPH_ENTER_LANDSCAPE_MODE');
+    });
+    this.parentDidFocusListener = parentNav.addListener('didFocus', () => {
+      console.log('[TIMER_DEBUG] BottomTabBar (parentNav): didFocus - emitting GraphExitLandscapeMode');
+      GraphExitLandscapeMode.emit('GRAPH_EXIT_LANDSCAPE_MODE');
+    });
+  }
 }
 
 _reportsEnabledChanged() {
@@ -80,6 +90,8 @@ _orientationDidChange = (orientation) => {
 }
 
 componentWillUnmount(){
+  if (this.parentWillBlurListener) this.parentWillBlurListener.remove();
+  if (this.parentDidFocusListener) this.parentDidFocusListener.remove();
   ThemeChange.removeThemeChangeListener(this.themeChangeListener)
   ReportsEnabledChanged.removeReportsEnabledChangedMode(this._reportsEnabledChanged)
   ReportsDisableChanged.removeReportsDisableChangedMode(this._reportsDisableChanged)

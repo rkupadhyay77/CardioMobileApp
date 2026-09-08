@@ -7,14 +7,16 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
-  DatePickerIOS
+  DatePickerIOS,
+  BackHandler,
 } from 'react-native';
 
-import getStateItem from '../../state/getStateItem'
-import {DB_KEY} from '../../common/helper/keys'
-import styles from './styles'
-import Orientation from 'react-native-orientation-locker'
-import {OrientationDidChange} from '../../state/emitters'
+import getStateItem from '../../state/getStateItem';
+import setStateItem from '../../state/setState/setStateItem';
+import {DB_KEY} from '../../common/helper/keys';
+import styles from './styles';
+import Orientation from 'react-native-orientation-locker';
+import {OrientationDidChange, GraphEnterLandscapeMode, GraphExitLandscapeMode} from '../../state/emitters';
 import {LineChart} from "react-native-chart-kit";
 import Icon from 'react-native-vector-icons/Feather'
 import Icon2 from 'react-native-vector-icons/Entypo'
@@ -27,7 +29,6 @@ const {width, height} = Dimensions.get('window')
 import TIMEZONE from '../../common/helper/timezone'
 import {getLastDataFromAlerts, executeApiWith} from '../../api'
 import { API_TIMEOUT } from '../../common/helper/util';
-import { GraphExitLandscapeMode } from '../../state/emitters';
 import getHeaders from '../../../galenApiLibrary/config/getHeader';
 import { getBaseURL } from '../../../galenApiLibrary/config/getBaseURL';
 import { isEndPointCardio } from '../../../galenApiLibrary/config/getBaseURL';
@@ -113,6 +114,20 @@ export default class GraphNewLandscape extends Component{
    }
 
     componentDidMount(){
+      let prevSelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+      if (prevSelected && prevSelected !== 'graphNewLandscape') {
+        setStateItem('PREVIOUS_SELECTED_BEFORE_GRAPH', prevSelected);
+      }
+      setStateItem(DB_KEY.CURRENTLY_SELECTED, 'graphNewLandscape');
+      console.log('[TIMER_DEBUG] GraphNewLandscape: mounted. PREVIOUS_SELECTED =', prevSelected, '-> CURRENTLY_SELECTED = graphNewLandscape');
+      console.log('[TIMER_DEBUG] GraphNewLandscape: emitting GraphEnterLandscapeMode');
+      GraphEnterLandscapeMode.emit('GRAPH_ENTER_LANDSCAPE_MODE');
+
+      this.backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        console.log('[TIMER_DEBUG] GraphNewLandscape: hardware back button pressed');
+        this.back();
+        return true;
+      });
 
       setTimeout(() => {
         Orientation.unlockAllOrientations()
@@ -211,7 +226,27 @@ export default class GraphNewLandscape extends Component{
        }
 
     componentWillUnmount(){
+      console.log('[TIMER_DEBUG] GraphNewLandscape: componentWillUnmount');
       StatusBar.setHidden(false);
+      if (this.backHandler) {
+        this.backHandler.remove();
+      }
+      if (this._interval) {
+        clearInterval(this._interval);
+        this._interval = null;
+      }
+      if (this._intervalAlert) {
+        clearInterval(this._intervalAlert);
+        this._intervalAlert = null;
+      }
+      if (!this.isExiting) {
+        this.isExiting = true;
+        let previousSelected = getStateItem('PREVIOUS_SELECTED_BEFORE_GRAPH') || 'residents';
+        console.log('[TIMER_DEBUG] GraphNewLandscape: restoring CURRENTLY_SELECTED to', previousSelected, 'and emitting GraphExitLandscapeMode');
+        setStateItem(DB_KEY.CURRENTLY_SELECTED, previousSelected);
+        OrientationDidChange.emit('ORIENTATION_DID_CHANGE');
+        GraphExitLandscapeMode.emit('GRAPH_EXIT_LANDSCAPE_MODE');
+      }
     }
 
     onDateChange(date) {
@@ -246,11 +281,23 @@ export default class GraphNewLandscape extends Component{
     
 
     back(){
-         clearInterval(this._interval)
-         clearInterval( this._intervalAlert )
-        OrientationDidChange.emit('ORIENTATION_DID_CHANGE')
-        GraphExitLandscapeMode.emit('GRAPH_EXIT_LANDSCAPE_MODE')
-        this.props.navigation.goBack()
+        if (this.isExiting) return;
+        this.isExiting = true;
+        console.log('[TIMER_DEBUG] GraphNewLandscape: back() called');
+        if (this._interval) {
+          clearInterval(this._interval);
+          this._interval = null;
+        }
+        if (this._intervalAlert) {
+          clearInterval(this._intervalAlert);
+          this._intervalAlert = null;
+        }
+        let previousSelected = getStateItem('PREVIOUS_SELECTED_BEFORE_GRAPH') || 'residents';
+        console.log('[TIMER_DEBUG] GraphNewLandscape: restoring CURRENTLY_SELECTED to', previousSelected, 'and emitting GraphExitLandscapeMode');
+        setStateItem(DB_KEY.CURRENTLY_SELECTED, previousSelected);
+        OrientationDidChange.emit('ORIENTATION_DID_CHANGE');
+        GraphExitLandscapeMode.emit('GRAPH_EXIT_LANDSCAPE_MODE');
+        this.props.navigation.goBack();
     }
 
     intervalModified(item, timeZoneStr1){

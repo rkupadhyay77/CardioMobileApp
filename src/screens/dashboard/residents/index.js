@@ -87,7 +87,7 @@ import { getUsersListForPractice , getUsersListForPracticeForCompany} from '../.
 import { fetchPracticeList, fetchAllUsersForCompany } from '../../../../galenApiLibrary/facility';
 ////////////////////////////////////////////New API//////////////////////////////////////////////////
 
-import { GraphEnterLandscapeMode } from '../../../state/emitters';
+import { GraphEnterLandscapeMode, GraphExitLandscapeMode } from '../../../state/emitters';
 
 export default class Residents extends Component {
   _keyExtractor = (item, index) => index.toString();
@@ -169,7 +169,11 @@ export default class Residents extends Component {
     this._searchWithText = this._searchWithText.bind(this);
     this.selectedPracticeChanged = this.selectedPracticeChanged.bind(this);
     this.eventOrientationDidChange = this.eventOrientationDidChange.bind(this);
- this.state = {
+    this.eventGraphEnterLandscapeMode = this.eventGraphEnterLandscapeMode.bind(this);
+    this.eventGraphExitLandscapeMode = this.eventGraphExitLandscapeMode.bind(this);
+    this.stopTimers = this.stopTimers.bind(this);
+    this.startTimers = this.startTimers.bind(this);
+  this.state = {
       loading: false,
       themeChanged: getStateItem(DB_KEY.IS_DARK_MODE),
       residentsList: [],
@@ -219,27 +223,96 @@ export default class Residents extends Component {
     }
   };
 
+  stopTimers = () => {
+    console.log('[TIMER_DEBUG] Residents: stopTimers called. Cleared _interval:', !!this._interval, '_intervalsVital:', !!this._intervalsVital);
+    if (this._interval) {
+      clearInterval(this._interval);
+      this._interval = null;
+    }
+    if (this._intervalsVital) {
+      clearInterval(this._intervalsVital);
+      this._intervalsVital = null;
+    }
+  };
+
+  startTimers = () => {
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    console.log('[TIMER_DEBUG] Residents: startTimers called. CURRENTLY_SELECTED =', currentlySelected);
+    if (currentlySelected !== 'residents') {
+      console.log('[TIMER_DEBUG] Residents: startTimers skipped because CURRENTLY_SELECTED is not residents');
+      return;
+    }
+    this.stopTimers();
+
+    let residentsInfo = getStateItem(DB_KEY.RESIDENT_DATA);
+    if (residentsInfo !== null && residentsInfo !== undefined && residentsInfo.length > 0) {
+      let residentsArray = getStateItem(DB_KEY.GALEN)
+        ? residentsInfo
+        : residentsInfo.deviceInfo;
+      this.setState({
+        residentsList: residentsArray,
+        refresh: !this.state.refresh,
+      });
+
+      this.fetchLatestData();
+      var lteinterval = getStateItem('lteInterval');
+      if (lteinterval === undefined || lteinterval === null) {
+        lteinterval = 120;
+      }
+
+      let lteIntervalMiliSeconds = lteinterval * 60 * 1000;
+      let timeInterval = isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds;
+
+      console.log('[TIMER_DEBUG] Residents: starting _interval (fetchLatestData) every', timeInterval, 'ms');
+      this._interval = setInterval(() => {
+        let current = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+        if (current !== 'residents') {
+          console.log('[TIMER_DEBUG] Residents: _interval tick aborted - CURRENTLY_SELECTED is', current);
+          this.stopTimers();
+          return;
+        }
+        console.log('[TIMER_DEBUG] Residents: _interval tick -> calling fetchLatestData()');
+        this.fetchLatestData();
+      }, timeInterval);
+
+      let user = getStateItem(DB_KEY.USER);
+      let userRole = user ? (user.currentRole ? user.currentRole.role : '') : '';
+      if (userRole === 'TenantAdmin') {
+        this.fetchSVitalsData();
+        console.log('[TIMER_DEBUG] Residents: starting _intervalsVital (fetchSVitalsData) every', timeInterval, 'ms');
+        this._intervalsVital = setInterval(() => {
+          let current = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+          if (current !== 'residents') {
+            console.log('[TIMER_DEBUG] Residents: _intervalsVital tick aborted - CURRENTLY_SELECTED is', current);
+            this.stopTimers();
+            return;
+          }
+          console.log('[TIMER_DEBUG] Residents: _intervalsVital tick -> calling fetchSVitalsData()');
+          this.fetchSVitalsData();
+        }, timeInterval);
+      }
+    }
+  };
+
+  eventGraphEnterLandscapeMode = () => {
+    console.log('[TIMER_DEBUG] Residents: eventGraphEnterLandscapeMode received - stopping timers');
+    this.stopTimers();
+  };
+
+  eventGraphExitLandscapeMode = () => {
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    console.log('[TIMER_DEBUG] Residents: eventGraphExitLandscapeMode received. CURRENTLY_SELECTED =', currentlySelected);
+    if (currentlySelected === 'residents') {
+      this.startTimers();
+    } else {
+      this.stopTimers();
+    }
+  };
+
   eventAppInBackground = () => {
-
-   clearInterval(this._interval);
-    clearInterval(this._intervalsVital);
-
-     
-
-    
-    // this.setState({isPutInBackground:true})
-    
-    // setStateItem(DB_KEY.LOCAL_RESIDENT_LIST, [])
-    // this.setState({residentsList:[],alertsArray:[]})
-    // setStateItem(DB_KEY.ALERTS_ARRAY, [])
-    // setStateItem(DB_KEY.NUMBER_OF_ALERTS, 0)
-    // setStateItem(DB_KEY.TOTAL_ARRAY_COUNT,0)
-    // setStateItem(DB_KEY.RESIDENT_DATA, [])
-    //AlertsNumberChanged.emit('ALERTS__NUMBER_CHANGED')
-console.log("called residentsChange 220")
+    this.stopTimers();
+    console.log("called residentsChange 220");
     this.residentsChange();
-
-    //this.props.navigation.popToTop()
   };
 
   eventAppInForeground = () => {
@@ -357,36 +430,40 @@ console.log("called residentsChange 220")
     //So whenever the screen will have focus it will set the state to zero
   
     this.focusListener = navigation.addListener('didFocus', () => {
+      console.log('[TIMER_DEBUG] Residents: didFocus - setting CURRENTLY_SELECTED = residents');
       AppInBackground.addAppInBackgroundListener(this.eventAppInBackground);
       AppInForeground.addAppInForegroundListener(this.eventAppInForeground);
 
-      setStateItem(DB_KEY.CURRENTLY_SELECTED,'residents')
+      setStateItem(DB_KEY.CURRENTLY_SELECTED, 'residents');
    
       let array = getStateItem(DB_KEY.RESIDENT_DATA);
-      console.log("RKDebug:residentArray:"+JSON.stringify(array))
-      // this.setState({});
+      console.log("RKDebug:residentArray:" + JSON.stringify(array));
 
       if (array !== null && array !== undefined && array.length > 0) {
-        console.log("called residentsChange 328")
-       // this.residentsChange();
-       this.setResidentsData()
-       this.setState({refresh: !this.state.refresh})
+        console.log("called residentsChange 328");
+        this.setResidentsData();
+        this.setState({refresh: !this.state.refresh});
       }
+    });
 
-      AppInBackground.removeAppInBackgroundListener(this.eventAppInBackground);
-      AppInForeground.removeAppInForegroundListener(this.eventAppInForeground);
+    this.willBlurListener = navigation.addListener('willBlur', () => {
+      console.log('[TIMER_DEBUG] Residents: willBlur - stopping timers');
+      this.stopTimers();
     });
 
     this.blurListener = navigation.addListener('didBlur', () => {
-      let array = getStateItem(DB_KEY.RESIDENT_DATA)
-      if (array !== undefined && array !== null && array.length > 0) {
-       
-        clearInterval(this._interval);
-        clearInterval(this._intervalsVital);
-      }
+      console.log('[TIMER_DEBUG] Residents: didBlur - stopping timers');
+      this.stopTimers();
     });
 
-   AppState.addEventListener('change', this._handleAppStateChange);
+    GraphEnterLandscapeMode.addGraphEnterLandscapeMode(
+      this.eventGraphEnterLandscapeMode,
+    );
+    GraphExitLandscapeMode.addGraphExitLandscapeMode(
+      this.eventGraphExitLandscapeMode,
+    );
+
+    AppState.addEventListener('change', this._handleAppStateChange);
  
     ResidentsChange.addResidentsChangeListener(this.residentsChange);
     ThemeChange.addThemeChangeListener(this.themeChange);
@@ -581,12 +658,13 @@ console.log("called residentsChange 220")
   }
 
  async fetchSVitalsData() {
-  
-  let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED)
-  if (currentlySelected !== 'residents') {
-   clearInterval(this._intervalsVital);
-   clearInterval(this._interval);
-  }
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    if (currentlySelected !== 'residents') {
+      console.log('[TIMER_DEBUG] Residents: fetchSVitalsData BLOCKED because CURRENTLY_SELECTED is', currentlySelected);
+      this.stopTimers();
+      return;
+    }
+    console.log('[TIMER_DEBUG] Residents: fetchSVitalsData EXECUTING api call');
   var lteinterval = getStateItem('lteInterval')
           if (lteinterval === undefined || lteinterval === null) {
             lteinterval = 120
@@ -804,11 +882,13 @@ console.log("called residentsChange 220")
   }
 
   async fetchLatestData() {
-       let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED)
-       if (currentlySelected !== 'residents') {
-        clearInterval(this._intervalsVital);
-        clearInterval(this._interval);
-       }
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    if (currentlySelected !== 'residents') {
+      console.log('[TIMER_DEBUG] Residents: fetchLatestData BLOCKED because CURRENTLY_SELECTED is', currentlySelected);
+      this.stopTimers();
+      return;
+    }
+    console.log('[TIMER_DEBUG] Residents: fetchLatestData EXECUTING api call');
 
      
     let userListArray = [];
@@ -898,74 +978,48 @@ console.log("called residentsChange 220")
  
 
   componentWillUnmount() {
-    // ResidentsChange.removeResidentsChangeListener(this.residentsChange)
-    //ThemeChange.removeThemeChangeListener(this.themeChange)
+    console.log('[TIMER_DEBUG] Residents: componentWillUnmount - cleaning up timers and listeners');
+    this.stopTimers();
+    GraphEnterLandscapeMode.removeGraphEnterLandscapeMode(
+      this.eventGraphEnterLandscapeMode,
+    );
+    GraphExitLandscapeMode.removeGraphExitLandscapeMode(
+      this.eventGraphExitLandscapeMode,
+    );
+    if (this.focusListener) this.focusListener.remove();
+    if (this.blurListener) this.blurListener.remove();
+    if (this.willBlurListener) this.willBlurListener.remove();
+    AppInBackground.removeAppInBackgroundListener(this.eventAppInBackground);
+    AppInForeground.removeAppInForegroundListener(this.eventAppInForeground);
     UsersListDidChange.removeUsersListListener(this.eventUsersListDidChange);
     SensorAddedForResident.removeSensorAddedForResident(
       this.eventSensorAddedForResident,
     );
-
-    SensorDataChange.removeSensorDataChangeListener(this.eventSensorDataChange)
+    SensorDataChange.removeSensorDataChangeListener(this.eventSensorDataChange);
   }
 
   setResidentsData() {
-     this.setState({isLoading: false});
-        this.setState({refresh: !this.state.refresh});
-        let residentsInfo = getStateItem(DB_KEY.RESIDENT_DATA)
-    
-        // check if user is patient
-        let user = getStateItem(DB_KEY.USER);
-        let userRole = user.currentRole ? user.currentRole.role : '';
-    
-       
-        if (residentsInfo !== null && residentsInfo.length > 0) {
-          let residentsArray = getStateItem(DB_KEY.GALEN)
-            ? residentsInfo
-            : residentsInfo.deviceInfo;
-          this.setState({
-            residentsList: residentsArray,
-            refresh: !this.state.refresh,
-          });
-         
-       
-          clearInterval(this._interval);
-          //console.log("RKDebug:Resident:residentsChange:fetchLatestData")
-      
-          this.fetchLatestData();
-           var lteinterval = getStateItem('lteInterval')
-            if (lteinterval === undefined || lteinterval === null) {
-              lteinterval = 120
-            }
-        
-            let lteIntervalMiliSeconds = lteinterval * 60 * 1000
-            let timeInterval = isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
-               
-          this._interval = setInterval(() => {
-            this.fetchLatestData();
-          }, timeInterval);
-         
-          if (userRole === 'TenantAdmin') {
-            clearInterval(this._intervalsVital);
-            //console.log("RKDebug:Resident:residentsChange:fetchSVitalsData")
-            this.fetchSVitalsData();
-            var lteinterval = getStateItem('lteInterval')
-            if (lteinterval === undefined || lteinterval === null) {
-              lteinterval = 120
-            }
-        
-            let lteIntervalMiliSeconds = lteinterval * 60 * 1000
-            this._intervalsVital = setInterval(() => {
-              this.fetchSVitalsData();
-            }, timeInterval);
-          }
-          //console.log("RKDebug:Resident:residentsChange:fetchAlertData")
-           
-        //  this.fetchAlertData()
-    
-          let instance = new APIHelper();
-         
-          //console.log("RKDebug:Resident:residentsChange:APIHelper")
-          console.log("RKDebug:Resident:residentsChange:APIHelper")
+    this.setState({isLoading: false});
+    this.setState({refresh: !this.state.refresh});
+    let residentsInfo = getStateItem(DB_KEY.RESIDENT_DATA);
+
+    // check if user is patient
+    let user = getStateItem(DB_KEY.USER);
+    let userRole = user ? (user.currentRole ? user.currentRole.role : '') : '';
+
+    if (residentsInfo !== null && residentsInfo.length > 0) {
+      let residentsArray = getStateItem(DB_KEY.GALEN)
+        ? residentsInfo
+        : residentsInfo.deviceInfo;
+      this.setState({
+        residentsList: residentsArray,
+        refresh: !this.state.refresh,
+      });
+
+      this.startTimers();
+
+      let instance = new APIHelper();
+      console.log("RKDebug:Resident:residentsChange:APIHelper");
          // instance.getAlerts();
     
           //  if(this.state.selectedUser.label !== 'All'){
@@ -1144,27 +1198,25 @@ console.log("called residentsChange 220")
   }
 
   residentTapped(item) {
+    console.log('[TIMER_DEBUG] Residents: residentTapped - stopping timers, isPLotViewTheme =', isPLotViewTheme());
+    this.stopTimers();
     if (isPLotViewTheme()) {
-       // stopeed the interval when resident tapped
-       clearInterval(this._interval);
-       clearInterval(this._intervalsVital);
+      let nav = getStateItem(DB_KEY.LOGIN_NAV);
+      setStateItem('PREVIOUS_SELECTED_BEFORE_GRAPH', 'residents');
+      GraphEnterLandscapeMode.emit('GRAPH_ENTER_LANDSCAPE_MODE');
 
-         let nav = getStateItem(DB_KEY.LOGIN_NAV);
-           GraphEnterLandscapeMode.emit('GRAPH_ENTER_LANDSCAPE_MODE')
-         
-           nav.navigate('GraphNewLandscape', {
-             devId: item.ownerId ,
-             selected: 2,
-             macAddress: item.data.Devid.value,
-             friendlyName: item.data.FriendlyName.value,
-             heartArrayExtended: [],
-             stressArrayExtended: [],
-             respiratoryArrayExtended: [],
-             tempArrayExtended: [],
-           });
-    }
-    else {
-      let devid = item.ownerId 
+      nav.navigate('GraphNewLandscape', {
+        devId: item.ownerId,
+        selected: 2,
+        macAddress: item.data.Devid.value,
+        friendlyName: item.data.FriendlyName.value,
+        heartArrayExtended: [],
+        stressArrayExtended: [],
+        respiratoryArrayExtended: [],
+        tempArrayExtended: [],
+      });
+    } else {
+      let devid = item.ownerId;
       setStateItem(DB_KEY.SELECTED_DEVICE_ID, devid);
       setStateItem(DB_KEY.SELECTED_MAC_ADDRESS, item.data.Devid.value);
       setStateItem(DB_KEY.SELECTED_SENSOR_MAC_ADDRESS, item.data.Devid.value);
@@ -1172,7 +1224,6 @@ console.log("called residentsChange 220")
       ResidentsTapped.emit('RESIDENTS_TAPPED');
       this.props.navigation.navigate('Stats');
     }
-
   }
 
   clearAlertTapped(item) {
@@ -1530,8 +1581,7 @@ console.log("called residentsChange 220")
          setStateItem(DB_KEY.TOTAL_UNREAD_ALERT, 0)
     }
     //console.log("RKDebug:Residents:userSelected")
-    clearInterval(this._interval);
-    clearInterval(this._intervalsVital);  
+    this.stopTimers();
   //  getSensorsForUserId(userId, true);
   //ReportsDisableChanged.emit('REPORTS_DISABLE_MODE')
   this.setState({searchedUsersArray: [], showSeachInput:false, emitOneTime: false})

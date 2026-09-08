@@ -539,9 +539,11 @@ export default class StatsRow extends Component {
   }
 
   expandTapped(selected) {
+    console.log('[TIMER_DEBUG] StatsRow: expandTapped - setting PREVIOUS_SELECTED_BEFORE_GRAPH = stats and navigating to GraphNewLandscape');
     const {data, ...props} = this.props;
 
     let nav = getStateItem(DB_KEY.LOGIN_NAV);
+    setStateItem('PREVIOUS_SELECTED_BEFORE_GRAPH', 'stats');
     GraphEnterLandscapeMode.emit('GRAPH_ENTER_LANDSCAPE_MODE')
     clearInterval(this._interval);
     clearInterval(this._intervalHourly);
