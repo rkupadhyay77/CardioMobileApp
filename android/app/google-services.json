@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1082203037131",
+    "project_id": "cardio-9b62e",
+    "storage_bucket": "cardio-9b62e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1082203037131:android:4b5fd55e2bc2eb641f2a4e",
+        "android_client_info": {
+          "package_name": "com.advancetelesensor.cardio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWG8du3fOj-mhqjc4WaP450FY_ng2NOjc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

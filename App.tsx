@@ -24,6 +24,14 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://fff295ee731b84ea7bf0e65a094904a3@o4507294527717376.ingest.us.sentry.io/4507368780660736',
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // enableSpotlight: __DEV__,
+});
 
 type SectionProps = PropsWithChildren<{
   title: string;

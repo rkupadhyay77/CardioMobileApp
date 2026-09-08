@@ -1,0 +1,36 @@
+
+const GALEN_URL = {
+    BASE_URL: 'https://api.galencloud.com/',
+    NEW_BASE_URL: 'https://webportalapi.cardioatx.com/',
+    CARDIO_V3_BASE_URL: 'https://webportalapi-v3.cardioatx.com/v3/',
+    NEW_CARDIO_BASE_URL: 'https://webportalapi-v3.cardioatx.com/v3/',
+    AUTH: 'auth/login',
+    ALL_SENSOR : 'data/devicedata-advanced/owner?sortBy=data.TimestampI.value&sortOrder=DESC',
+    DATA_PVITAL : "data/devicedata-advanced?sortBy=data.Timestamp.value&sortOrder=DESC",
+    LAST_ALERT : "data/devicedata-advanced?pageSize=1&pageNumber=0",
+    DATA_THRESHOLD: "data/devicedata-advanced?sortBy=data.TimestampT.value&sortOrder=DESC&pageSize=1&pageNumber=0",
+    DATA_PARAMS: "data/devicedata-advanced?sortBy=data.TimestampP.value&sortOrder=DESC&pageSize=1&pageNumber=0",
+    DATA_DEVHEALTH: "data/devicedata-advanced?sortBy=data.TimestampD.value&sortOrder=DESC&pageSize=1&pageNumber=0",
+    DATA_IDENTITY: "data/devicedata-advanced?pageNumber=0&pageSize=1",
+    GET_GUEST_LIST : "observer/observers?pageNumber=0&pageSize=20&sortBy=createdOn&sortOrder=DESC",
+    INVITE_OBSERVE: 'observer/invite',
+    USER_DEVICE: 'user/device',
+    GET_DEVICE_PROPERTY: 'user/devicepropertyset?deviceDataModelId=',
+    WRITE_DEVICE_DATA: 'data/devicedata',
+    CUSTOM_FIELD: 'user/custom-field/data/',
+    REGISTER_USER: 'user/register',
+    ACTIVATE_USER: 'user/activate',
+    RESEND_CODE: 'user/register/send-code',
+    TEN_ALERTS_URL: 'data/devicedata-advanced/owner?pageNumber=0&pageSize=10&sortBy=data.TimestampA.value&sortOrder=DESC',
+    DEVICE_DATA: 'data/devicedata-advanced',
+    DELETE_ACCOUNT: 'user/user?userId=',
+    DATA_PSTATS : "data/devicedata-advanced?sortBy=data.TimestampPs.value",
+    VERIFY_SENSOR: "data/devicedata-advanced/owner?pageSize=1&pageNumber=0",
+    FACILITY_LIST : "user/practice?pageNumber=0&sortBy=name&sortOrder=ASC&supplierId=",
+    ALL_USER_COMPANY : "user/user?role=Patient&supplierId=",
+    LAST_DATA : "data/devicedata-advanced?pageSize=1&pageNumber=0",
+    ADD_NEW_SENSOR : "v3/devices",
+    DEVICES: 'devices/'
+};
+
+export default GALEN_URL;

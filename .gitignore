@@ -72,3 +72,18 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Sentry credentials
+**/sentry.properties
+
+# macOS Finder alias files
+* alias
+
+# Carthage checkouts
+**/Carthage/Checkouts/
+
+# Nested legacy iOS backup folder
+ios/ios/*
+!ios/ios/Carthage/
+ios/ios/Carthage/*
+!ios/ios/Carthage/Build/

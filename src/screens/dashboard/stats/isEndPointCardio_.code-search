@@ -1,0 +1,59 @@
+# Query: isEndPointCardio()
+# ContextLines: 1
+
+12 results - 7 files
+
+galenApiLibrary/config/getBaseURL.js:
+  20  
+  21: export  function isEndPointCardio() {
+  22      let endPoint = getEndPoint()
+
+src/common/component/fdaStatsRow/index.js:
+  110      this._getOneHourData();
+  111:      let timeInterval = this.isEndPointCardio() === true ? 10000 : 200000 // 1o seconds and 200 seconds
+  112          
+
+src/common/component/statsRow/index.js:
+   123        this._getOneHourData();
+   124:       let timeInterval = this.isEndPointCardio() === true ? 10000 : 200000 // 1o seconds and 200 seconds
+   125        this._intervalHourly = setInterval(() => {
+
+   205      this._getOneHourData();
+   206:     let timeInterval = this.isEndPointCardio() === true ? 10000 : 200000 // 1o seconds and 200 seconds
+   207       
+
+  3382        this.getCurrentHardwareVersion();
+  3383:       let timeInterval = this.isEndPointCardio() === true ? 10000 : 200000 // 1o seconds and 200 seconds
+  3384      
+
+src/screens/alerts/index.js:
+  72        // this.filterTheData()
+  73:   let timeInterval = this.isEndPointCardio() === true ? 10000 : 200000 // 1o seconds and 200 seconds
+  74        
+
+src/screens/dashboard/residents/index.js:
+  931              let lteIntervalMiliSeconds = lteinterval * 60 * 1000
+  932:             let timeInterval = this.isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
+  933                 
+
+src/screens/dashboard/stats/index.js:
+  152      let lteIntervalMiliSeconds = lteinterval * 60 * 1000
+  153:      let timeInterval = this.isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
+  154                  
+
+  222      let lteIntervalMiliSeconds = lteinterval * 60 * 1000
+  223:     let timeInterval =this.isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
+  224        
+
+  272        let lteIntervalMiliSeconds = lteinterval * 60 * 1000
+  273:       let timeInterval = this.isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
+  274       
+
+src/screens/graphNewLandscape/index.js:
+  160               let lteIntervalMiliSeconds = lteinterval * 60 * 1000
+  161:               let timeInterval = this.isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
+  162                    
+
+  241          var todayEndDate = timeTDate.format("DD MMM hh:mm a");
+  242:         let timeInterval = this.isEndPointCardio() === true ? 10000 : 200000 // 1o seconds and 200 seconds
+  243                
