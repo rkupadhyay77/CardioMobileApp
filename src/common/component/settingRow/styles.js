@@ -27,7 +27,12 @@ const styles = StyleSheet.create ({
         justifyContent:'center'
     },
     iconContainer:{
+        marginLeft: width* 0.4,
         width:width*0.10, 
+        justifyContent:'center'
+    },
+    switchContainer:{
+        marginLeft: width* 0.3,
         justifyContent:'center'
     },
     selectedType : {

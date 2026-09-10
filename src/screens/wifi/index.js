@@ -45,6 +45,9 @@ import TempLogger from '../tempLogger';
 const {width , height }  = Dimensions.get('window')
 import { captureEvent } from '../../analytics/posthog';
 
+import EventLoggingChange from '../../state/emitters/eventLoggingChange';
+import {checkForSensorInIdentity} from '../../../galenApiLibrary/residents';
+
 export default class ConnectWiFiScreen extends Component {
     constructor(props){
         super(props)
@@ -114,6 +117,10 @@ export default class ConnectWiFiScreen extends Component {
 
     handleYesTapped(){
         // hit the api
+        let eventLogArray = getStateItem(DB_KEY.EVENT_LOG_ARRAY)
+        eventLogArray.unshift({description: "Sensor Configuration start...", _time: this.getCurrentTime()})
+        setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray)
+        EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
         captureEvent(getStateItem(DB_KEY.USER).userId, 'Sensor Configuration', 'Started the configuration', {macAddress: this.state.macAddress, friendlyName: this.state.friendlyName, location: this.state.location});
         this.setState({loading:true})
         this.addSensorDevice(this.state.macAddress, this.state.friendlyName, this.state.location)
@@ -181,6 +188,19 @@ export default class ConnectWiFiScreen extends Component {
           return false
     }
 
+    async checkSensorInIdentity(macAddress, userId) {
+      let eventLogArray = getStateItem(DB_KEY.EVENT_LOG_ARRAY)  
+      eventLogArray.unshift({description: "Checking in identity...", _time: this.getCurrentTime()})
+      setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray)
+      EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
+      let isSensorInIdentity = await checkForSensorInIdentity(macAddress, userId)
+
+      let eventLogArray2 = getStateItem(DB_KEY.EVENT_LOG_ARRAY)
+      eventLogArray2.unshift({description: "Got "+isSensorInIdentity, _time: this.getCurrentTime()})  
+      setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray2)
+      EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
+ }
+
 
     async  addSensorDevice(macAddress, friendlyName, location) {
       
@@ -189,14 +209,29 @@ export default class ConnectWiFiScreen extends Component {
       let email = getStateItem(DB_KEY.USER).emailAddress
       let userId = getStateItem(DB_KEY.USER).userId
       this._setUpResponseTimeInterval()
+      // hit multiple api with await so that loader can be show until device is added
+      let eventLogArray = getStateItem(DB_KEY.EVENT_LOG_ARRAY)
+      eventLogArray.unshift({description: "Sensor Configuration Api Start...", _time: this.getCurrentTime()})
+      setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray)
+      EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
+
+
       captureEvent(getStateItem(DB_KEY.USER).userId, 'Sensor Configuration', 'API started', {macAddress: this.state.macAddress, friendlyName: this.state.friendlyName, location: this.state.location});
       let res = await addNewSensor(macAddress, supplierId, tenantId, email, friendlyName, location, this.state.serialNumber,userId, this.state.selectedTimezone, this.state.dayLightSavingEnabled, this.state.manufacturer)
       this._clearResponseTimeInterval()
       this.setState({loading:false})
       captureEvent(getStateItem(DB_KEY.USER).userId, 'Sensor Configuration', 'API retured:'+res.status, {macAddress: this.state.macAddress, friendlyName: this.state.friendlyName, location: this.state.location});
      
+      let eventLogArray2 = getStateItem(DB_KEY.EVENT_LOG_ARRAY)
+      
+
      if (res.status === 200 || res.status === 201){  
+      eventLogArray2.unshift({description: "Sensor configure response: "+res.status, _time: this.getCurrentTime()})
+      setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray2)
+      EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
+
      await getSensors(true)
+     await this.checkSensorInIdentity(macAddress, userId)
      SensorDataChange.emit('SENSOR_DATA_CHANGED')
       if (this.state.isFromResident){
         SensorAddedForResident.emit('SENSOR__FOR_RESIDENT')
@@ -213,6 +248,10 @@ export default class ConnectWiFiScreen extends Component {
       );
   }
      else { 
+      eventLogArray2.unshift({description: "Got api response: "+res.status, _time: this.getCurrentTime()})
+      setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray2)
+      EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
+
       var message =    "Some error occurred while adding sensor, please try again."
       if (res.status === 403) {
         message = "Device belongs to a different company and cannot be moved across companies."
@@ -610,9 +649,9 @@ validateWiFi(){
 
      // this.showConfirmationAlert()
      // this.
-       // this.validateWiFi()
+        this.validateWiFi()
 
-         this.handleYesTapped()
+       //  this.handleYesTapped()
 
 
 
@@ -710,6 +749,21 @@ validateWiFi(){
        this.setState({dayLightSavingEnabled: value})
    
       }
+     }
+
+       getCurrentTime() {
+         const now = new Date();
+     
+         let hours = now.getHours();
+         const minutes = String(now.getMinutes()).padStart(2, '0');
+         const seconds = String(now.getSeconds()).padStart(2, '0');
+     
+         const ampm = hours >= 12 ? 'pm' : 'am';
+     
+         hours = hours % 12;
+         hours = hours || 12;
+     
+         return `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
      }
 
      getTheTimezone() {

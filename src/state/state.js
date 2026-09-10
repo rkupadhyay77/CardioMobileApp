@@ -56,8 +56,9 @@ const STATE = {
   allUsersArray: [],
   currentlySelected: '',
   isPrefEnabled: true,
+  isEventLoggingEnabled: false,
   subsciptionsArrayList: [],
-  version: '2.1.26',
+  version: '2.1.27',
   letInterval: 120,
   bufferValue: 5,
   reportsUpdatedAt: '',
@@ -68,6 +69,7 @@ const STATE = {
   keychainPassword: '',
   showFloatingWindow: false,
   floatingWindowData: null,
+  eventLogArray: [],
 };
 
 export default STATE;

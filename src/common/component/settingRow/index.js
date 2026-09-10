@@ -6,6 +6,7 @@ import { DB_KEY } from '../../helper/keys';
 
 import Icon from 'react-native-vector-icons/Entypo'
 import setStateItem from '../../../state/setState/setStateItem';
+import { FloatingWindowChanged } from '../../../state/emitters';
 
 
 const {width , height }  = Dimensions.get('window')
@@ -13,7 +14,24 @@ const {width , height }  = Dimensions.get('window')
 export default class SettingRow extends Component {
     constructor(props) {
         super(props)
-        this.state = {isPerfEnabled: getStateItem(DB_KEY.IS_PREF_ENABLED)}
+        this.state = {isPerfEnabled: getStateItem(DB_KEY.IS_PREF_ENABLED), isEventLoggingEnabled: getStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED)}
+    }
+
+    componentDidMount() {
+        if (this.props.isSwitch) {
+            this.floatingWindowListener = (payload) => {
+                if (payload && payload.visible !== undefined) {
+                    this.setState({isEventLoggingEnabled: payload.visible});
+                }
+            };
+            FloatingWindowChanged.addFloatingWindowChangeListener(this.floatingWindowListener);
+        }
+    }
+
+    componentWillUnmount() {
+        if (this.props.isSwitch && this.floatingWindowListener) {
+            FloatingWindowChanged.removeFloatingWindowChangeListener(this.floatingWindowListener);
+        }
     }
 
     changePrefSetting() {
@@ -22,6 +40,40 @@ export default class SettingRow extends Component {
         setStateItem(DB_KEY.IS_PREF_ENABLED, valueToSet)
 
         this.setState({isPerfEnabled : !this.state.isPerfEnabled});
+    }
+
+    changeEventLoggingSetting() {
+        let isEventLoggingEnabled = getStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED)
+        let valueToSet = isEventLoggingEnabled === true ? false : true
+        setStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED, valueToSet)
+        setStateItem(DB_KEY.EVENT_LOG_ARRAY,[])
+        this.setState({isEventLoggingEnabled : valueToSet});
+
+        if (valueToSet) {
+            FloatingWindowChanged.show();
+        } else {
+            FloatingWindowChanged.hide();
+        }
+    }
+
+    _renderSwitch(){
+        const {isSwitch, ...props} = this.props
+        const {isEventLoggingEnabled} = this.state
+        if (isSwitch) {
+            return (
+                <View style = {styles.switchContainer}>
+                  <Switch
+                    trackColor={{false: '#767577', true: '#008000'}}
+                    thumbColor={isEventLoggingEnabled ? '#008000' : '#f4f3f4'}
+                    ios_backgroundColor="#3e3e3e"
+                    onValueChange={() => this.changeEventLoggingSetting()}
+                    value={isEventLoggingEnabled}
+                />
+       </View>
+            )
+        }else{
+            return(<View />)
+        }
     }
     _renderIcon(){
         const {isIcon,isSwitch, ...props} = this.props
@@ -32,19 +84,8 @@ export default class SettingRow extends Component {
                 <Icon name= {'chevron-thin-right'} size = {height*0.02} color = {'rgba(136,136,136,1.0)'} />
              </View>
             )
-        }else if (isSwitch) {
-            return (
-                <View style = {styles.iconContainer}>
-                  <Switch
-                    trackColor={{false: '#767577', true: '#008000'}}
-                    thumbColor={isPerfEnabled ? '#008000' : '#f4f3f4'}
-                    ios_backgroundColor="#3e3e3e"
-                    onValueChange={() => this.changePrefSetting()}
-                    value={isPerfEnabled}
-                />
-       </View>
-            )
-        }else{
+        }
+        else{
             return(<View />)
         }
     }
@@ -59,7 +100,7 @@ export default class SettingRow extends Component {
             )
         }else{
             return (
-                <View style = {styles.selectedTypeContainer} />
+                <View />
             )
         }
     }
@@ -87,6 +128,7 @@ export default class SettingRow extends Component {
               {this._renderTitle()} 
               {this._renderSelectedType()}
               {this._renderIcon()}
+              {this._renderSwitch()}
             </TouchableOpacity>
         )
       }

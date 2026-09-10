@@ -6,6 +6,7 @@ import {
   PanResponder,
   TouchableOpacity,
   Dimensions,
+  FlatList,
   Platform,
 } from 'react-native';
 import styles, {FLOATING_WINDOW_HEIGHT} from './styles';
@@ -13,8 +14,10 @@ import Icon from 'react-native-vector-icons/AntDesign';
 import IconFeather from 'react-native-vector-icons/Feather';
 import IconFontAwesome from 'react-native-vector-icons/FontAwesome';
 import getStateItem from '../../../state/getStateItem';
+import setStateItem from '../../../state/setState/setStateItem';
 import {DB_KEY} from '../../../common/helper/keys';
 import ThemeChange from '../../../state/emitters/themeChange';
+import EventLoggingChange from '../../../state/emitters/eventLoggingChange';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -37,6 +40,7 @@ export default class FloatingWindow extends Component {
     this.state = {
       isMinimized: false,
       isDarkMode: getStateItem(DB_KEY.IS_DARK_MODE) || false,
+      eventLogArray: getStateItem(DB_KEY.EVENT_LOG_ARRAY) || [],
     };
 
     // Keep internal track of current position
@@ -47,20 +51,31 @@ export default class FloatingWindow extends Component {
 
     this.initPanResponder();
     this.themeChangeListener = this.themeChangeListener.bind(this);
+    this.eventLoggingChangeListener = this.eventLoggingChangeListener.bind(this);
   }
 
   componentDidMount() {
+   
     ThemeChange.addThemeChangeListener(this.themeChangeListener);
+    EventLoggingChange.addEventLoggingChangeListener(this.eventLoggingChangeListener);
   }
+
+
 
   componentWillUnmount() {
     ThemeChange.removeThemeChangeListener(this.themeChangeListener);
+    EventLoggingChange.removeEventLoggingChangeListener(this.eventLoggingChangeListener);
     this.pan.removeAllListeners();
   }
 
   themeChangeListener() {
     const isDark = getStateItem(DB_KEY.IS_DARK_MODE) || false;
     this.setState({isDarkMode: isDark});
+  }
+
+  eventLoggingChangeListener() {
+    const eventLogArray = getStateItem(DB_KEY.EVENT_LOG_ARRAY) || [];
+    this.setState({eventLogArray: eventLogArray});
   }
 
   initPanResponder() {
@@ -149,48 +164,40 @@ export default class FloatingWindow extends Component {
     }
   }
 
-  renderDefaultContent() {
-    const {isDarkMode} = this.state;
-    const textColor = isDarkMode ? '#EEEEEE' : '#222222';
-    const subTextColor = isDarkMode ? '#AAAAAA' : '#666666';
+   _renderRow(item){
+          return (
+              <View style={styles.rowContainer}>
+               <View style={styles.seprator}></View>
+               <View style={{flexDirection:'row'}}>
+               <Text>{item._time}</Text>
+                  <Text style={styles.descriptionText}>{item.description}</Text>
+                  </View>
+              </View>
+          )
+      }
 
-    return (
-      <View style={styles.defaultContentContainer}>
-        <Text style={[styles.defaultContentTitle, {color: textColor}]}>
-          Cardio Live Overview
-        </Text>
-        <Text style={[styles.defaultContentSubtitle, {color: subTextColor}]}>
-          Drag anywhere from the handle bar to reposition this window.
-        </Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <IconFontAwesome name="heartbeat" size={20} color="#E53935" />
-            <Text style={[styles.statNumber, {color: textColor}]}>72</Text>
-            <Text style={styles.statLabel}>BPM</Text>
-          </View>
-          <View style={styles.statBox}>
-            <IconFontAwesome name="stethoscope" size={20} color="#1E88E5" />
-            <Text style={[styles.statNumber, {color: textColor}]}>16</Text>
-            <Text style={styles.statLabel}>RESP/MIN</Text>
-          </View>
-          <View style={styles.statBox}>
-            <IconFontAwesome
-              name="thermometer-half"
-              size={20}
-              color="#FB8C00"
-            />
-            <Text style={[styles.statNumber, {color: textColor}]}>98.6°F</Text>
-            <Text style={styles.statLabel}>TEMP</Text>
-          </View>
-        </View>
+ _renderLogEvent() {
+    const {eventLogArray} = this.state;
+    return(
+      <View style={styles.eventLogContainer}>
+      <FlatList style={styles.eventLogContainer}
+                          data={eventLogArray}
+                          renderItem={({item}) => (
+                              this._renderRow(item)
+                          )}
+                          keyExtractor={(item, index) => index.toString()} 
+                           >      
+      
+                      </FlatList>
       </View>
-    );
+    )
   }
 
   render() {
     const {
       visible = true,
       title = 'Cardio Floating Monitor',
+      borderColor,
       children,
     } = this.props;
     const {isMinimized, isDarkMode} = this.state;
@@ -199,7 +206,10 @@ export default class FloatingWindow extends Component {
       return null;
     }
 
-    const cardThemeStyle = isDarkMode ? styles.cardDark : styles.cardLight;
+    const cardThemeStyle = [
+      isDarkMode ? styles.cardDark : styles.cardLight,
+      borderColor ? {borderColor} : null,
+    ];
     const titleThemeStyle = isDarkMode
       ? styles.titleTextDark
       : styles.titleTextLight;
@@ -254,7 +264,7 @@ export default class FloatingWindow extends Component {
           {/* Window Body Content */}
           {!isMinimized && (
             <View style={styles.content}>
-              {children ? children : this.renderDefaultContent()}
+             {this._renderLogEvent()}
             </View>
           )}
         </View>

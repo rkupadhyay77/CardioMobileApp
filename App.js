@@ -79,7 +79,7 @@ class App extends React.Component {
       showStatsTheme: false,
       showAlertUploadImage: false,
       showPracticeData: false,
-      showFloatingWindow: true,
+      showFloatingWindow: false,
       floatingWindowData: null,
     };
   }
@@ -172,14 +172,19 @@ class App extends React.Component {
   }
 
   showFloatingWindowChanged(payload) {
+    let isEventLoggingEnabled = getStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED);
     if (payload && payload.toggle) {
+      if (!isEventLoggingEnabled) {
+        this.setState({showFloatingWindow: false});
+        return;
+      }
       this.setState(prevState => ({
         showFloatingWindow: !prevState.showFloatingWindow,
         floatingWindowData: payload.data || null,
       }));
     } else if (payload && payload.visible !== undefined) {
       this.setState({
-        showFloatingWindow: payload.visible,
+        showFloatingWindow: Boolean(payload.visible && isEventLoggingEnabled),
         floatingWindowData: payload.data || null,
       });
     }
@@ -503,14 +508,19 @@ class App extends React.Component {
 
   renderFloatingWindow() {
     const {showFloatingWindow, floatingWindowData} = this.state;
-    if (!showFloatingWindow) {
+    const isEventLoggingEnabled = getStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED);
+    if (!showFloatingWindow || !isEventLoggingEnabled) {
       return null;
     }
     return (
       <FloatingWindow
-        visible={showFloatingWindow}
+        visible={showFloatingWindow && isEventLoggingEnabled}
         data={floatingWindowData}
-        onClose={() => this.setState({showFloatingWindow: false})}
+        onClose={() => {
+          setStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED, false);
+          this.setState({showFloatingWindow: false});
+          FloatingWindowChanged.hide();
+        }}
       />
     );
   }

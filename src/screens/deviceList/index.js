@@ -618,9 +618,9 @@ export default class DeviceList extends Component {
 
 
   addNewDevice() {
-  //this.props.navigation.navigate('MedicalTextScreen');
+  this.props.navigation.navigate('MedicalTextScreen');
 
-   // return
+    return
 
 this.props.navigation.navigate('ConnectWiFiScreen',{macAddress: 'C4:7F:51:94:60:E11', serialNumber:'424180-0007',manufacturer:'ATX2410-GW'});
         return

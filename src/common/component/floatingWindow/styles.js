@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 2,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
@@ -33,11 +33,11 @@ const styles = StyleSheet.create({
   },
   cardLight: {
     backgroundColor: '#FFFFFF',
-    borderColor: 'rgba(0, 0, 0, 0.08)',
+    borderColor: '#007AFF',
   },
   cardDark: {
     backgroundColor: '#1E1E20',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderColor: '#0A84FF',
   },
   header: {
     flexDirection: 'row',
@@ -133,6 +133,21 @@ const styles = StyleSheet.create({
     color: '#888888',
     marginTop: 2,
   },
+  eventLogContainer: {
+    flex: 1,
+   
+  },
+  rowContainer :{
+    height:50, 
+    justifyContent:'center',
+},
+seprator :{
+  width : width*0.90 - 2,
+  height : 1,
+  backgroundColor : 'rgba(21,21,21,0.6)',
+  position:'absolute',
+  top : 49
+},
 });
 
 export default styles;

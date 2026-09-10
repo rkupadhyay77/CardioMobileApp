@@ -66,7 +66,9 @@ export const DB_KEY = {
     REPORTS_ARRAY: 'reportsArray',
     SELECTED_PRACTICE_ID: 'selectedPracticeId',
     KEY_CHAIN_EMAIL: 'keychainEmail',
-    KEY_CHAIN_PASSWORD: 'keychainPassword'
+    KEY_CHAIN_PASSWORD: 'keychainPassword',
+    IS_EVENT_LOGIN_ENABLED: 'isEventLoggingEnabled',
+    EVENT_LOG_ARRAY: 'eventLogArray'
 }
 
 export const API_METHOD = {

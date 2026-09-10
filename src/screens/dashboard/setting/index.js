@@ -174,6 +174,7 @@ termsTapped(){
     setStateItem(DB_KEY.LOCAL_READ_ALERT_ARRAY,[])
     setStateItem(DB_KEY.CURRENTLY_SELECTED,'')
     setStateItem(DB_KEY.REPORTS_ARRAY,[])
+    setStateItem(DB_KEY.EVENT_LOG_ARRAY,[])
    
     let nav = getStateItem(DB_KEY.NAVIGATOR)
     nav.goBack()
@@ -307,7 +308,9 @@ termsTapped(){
               <SettingRow title={'Stats Theme'}  selectedType={statsTheme}  onPress={()=> this.statsThemeChangedTapped()} />
               <SettingRow title={'Video Tutorial'}  selectedType={'info/video/tutorial'} onPress={()=> this.handleVideoClick()} />
               {this._renderDeleteUser()}
+             
               <SettingRow title={'Log Out'}  onPress={()=> this.logoutTapped()} />
+              <SettingRow title={'Reserved'}  isSwitch = {true}  />
               </ScrollView>
               {this._renderLoader()}
             </View>
