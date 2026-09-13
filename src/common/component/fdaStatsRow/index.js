@@ -644,9 +644,11 @@ export default class FDAStatsRow extends Component {
   }
 
    expandTapped(selected) {
+      console.log('[TIMER_DEBUG] FDAStatsRow: expandTapped - setting PREVIOUS_SELECTED_BEFORE_GRAPH = stats and navigating to GraphNewLandscape');
       const {data, ...props} = this.props;
   
       let nav = getStateItem(DB_KEY.LOGIN_NAV);
+      setStateItem('PREVIOUS_SELECTED_BEFORE_GRAPH', 'stats');
       GraphEnterLandscapeMode.emit('GRAPH_ENTER_LANDSCAPE_MODE')
       clearInterval(this._interval);
       clearInterval(this._intervalHourly);
@@ -661,6 +663,17 @@ export default class FDAStatsRow extends Component {
         tempArrayExtended: this.state.tempHistoryArray,
       });
     }
+
+  componentWillUnmount() {
+    if (this._interval) {
+      clearInterval(this._interval);
+      this._interval = null;
+    }
+    if (this._intervalHourly) {
+      clearInterval(this._intervalHourly);
+      this._intervalHourly = null;
+    }
+  }
 
   _renderContentForRespiratory() {
     const {respiratoryHistoryArray, respiratoryTimeArray} =

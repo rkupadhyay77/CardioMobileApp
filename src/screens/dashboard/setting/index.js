@@ -47,6 +47,7 @@ export default class Setting extends Component {
   componentDidMount(){
     const { navigation } = this.props;
     this.focusListener = navigation.addListener('didFocus', () => {
+      console.log('[TIMER_DEBUG] Setting: didFocus - setting CURRENTLY_SELECTED = settings');
       AlertsNumberChanged.emit('ALERTS__NUMBER_CHANGED')
       setStateItem(DB_KEY.CURRENTLY_SELECTED,'settings')
 
@@ -62,6 +63,8 @@ export default class Setting extends Component {
   }
 
   componentWillUnmount(){
+    console.log('[TIMER_DEBUG] Setting: componentWillUnmount');
+    if (this.focusListener) this.focusListener.remove();
     ThemeChange.removeThemeChangeListener(this.eventThemeChange)
     UnitTypeChanged.removeUnitTypeChangedListener(this.eventUnitTypeChanged)
     NotificationModified.removeNotificationModified(this.notificationModified)

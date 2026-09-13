@@ -79,6 +79,8 @@ export default class Stats extends Component {
     this.changeActiveIndex = this.changeActiveIndex.bind(this);
     this.eventGraphEnterLandscapeMode = this.eventGraphEnterLandscapeMode.bind(this);
     this.eventGraphExitLandscapeMode = this.eventGraphExitLandscapeMode.bind(this);
+    this.stopTimers = this.stopTimers.bind(this);
+    this.startTimers = this.startTimers.bind(this);
 
     this.state = {
       themeChanged: getStateItem(DB_KEY.IS_DARK_MODE),
@@ -131,30 +133,67 @@ export default class Stats extends Component {
     }
   };
 
-  eventAppInBackground = () => {
-    clearInterval(this._interval);
-    clearInterval(this._intervalSVital);
+  stopTimers = () => {
+    console.log('[TIMER_DEBUG] Stats: stopTimers called. Cleared _interval:', !!this._interval, '_intervalSVital:', !!this._intervalSVital);
+    if (this._interval) {
+      clearInterval(this._interval);
+      this._interval = null;
+    }
+    if (this._intervalSVital) {
+      clearInterval(this._intervalSVital);
+      this._intervalSVital = null;
+    }
   };
 
-  eventGraphEnterLandscapeMode= () => {
-    clearInterval(this._interval);
-    clearInterval(this._intervalSVital);
-  };
+  startTimers = () => {
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    console.log('[TIMER_DEBUG] Stats: startTimers called. CURRENTLY_SELECTED =', currentlySelected);
+    if (currentlySelected !== 'stats') {
+      console.log('[TIMER_DEBUG] Stats: startTimers skipped because CURRENTLY_SELECTED is not stats');
+      return;
+    }
+    this.stopTimers();
 
-
-  eventGraphExitLandscapeMode= () => {
-    this.fetchLatestData();
-    var lteinterval = getStateItem('lteInterval')
+    var lteinterval = getStateItem('lteInterval');
     if (lteinterval === undefined || lteinterval === null) {
-      lteinterval = 120
+      lteinterval = 120;
     }
 
-    let lteIntervalMiliSeconds = lteinterval * 60 * 1000
-     let timeInterval = isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
-                
+    let lteIntervalMiliSeconds = lteinterval * 60 * 1000;
+    let timeInterval = isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds;
+
+    console.log('[TIMER_DEBUG] Stats: starting _interval (fetchLatestData) every', timeInterval, 'ms');
+    this.fetchLatestData();
     this._interval = setInterval(() => {
+      let current = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+      if (current !== 'stats') {
+        console.log('[TIMER_DEBUG] Stats: _interval tick aborted - CURRENTLY_SELECTED is', current);
+        this.stopTimers();
+        return;
+      }
+      console.log('[TIMER_DEBUG] Stats: _interval tick -> calling fetchLatestData()');
       this.fetchLatestData();
     }, timeInterval);
+  };
+
+  eventAppInBackground = () => {
+    console.log('[TIMER_DEBUG] Stats: eventAppInBackground received');
+    this.stopTimers();
+  };
+
+  eventGraphEnterLandscapeMode = () => {
+    console.log('[TIMER_DEBUG] Stats: eventGraphEnterLandscapeMode received - stopping timers');
+    this.stopTimers();
+  };
+
+  eventGraphExitLandscapeMode = () => {
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    console.log('[TIMER_DEBUG] Stats: eventGraphExitLandscapeMode received. CURRENTLY_SELECTED =', currentlySelected);
+    if (currentlySelected === 'stats') {
+      this.startTimers();
+    } else {
+      this.stopTimers();
+    }
   };
 
   filterResidentData() {
@@ -199,10 +238,15 @@ export default class Stats extends Component {
   }
 
   eventAppInForeground = () => {
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    if (currentlySelected !== 'stats') {
+      this.stopTimers();
+      return;
+    }
     const macAddress = getStateItem(DB_KEY.SELECTED_SENSOR_MAC_ADDRESS);
     const userId = getStateItem(DB_KEY.SELECTED_SENSOR_USER_ID);
 
-    let residentsInfo = getFilteredData(); //getStateItem(DB_KEY.RESIDENT_DATA)
+    let residentsInfo = getFilteredData();
     if (residentsInfo !== null) {
       let residentsArray = getStateItem(DB_KEY.GALEN)
         ? residentsInfo
@@ -210,21 +254,10 @@ export default class Stats extends Component {
       this.setState({statsList: residentsArray});
     }
 
-    if (macAddress.length > 0) {
+    if (macAddress && macAddress.length > 0) {
       this.calculateMoveToIndex(userId, macAddress);
     }
-    this.fetchLatestData();
-    var lteinterval = getStateItem('lteInterval')
-    if (lteinterval === undefined || lteinterval === null) {
-      lteinterval = 120
-    }
-
-    let lteIntervalMiliSeconds = lteinterval * 60 * 1000
-    let timeInterval = isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
-      
-    this._interval = setInterval(() => {
-      this.fetchLatestData();
-    }, timeInterval);
+    this.startTimers();
   };
 
   componentDidMount() {
@@ -238,19 +271,15 @@ export default class Stats extends Component {
     OrientationDidChange.addOrientationDidChangeListener(
       this.eventOrientationDidChange,
     );
-    GraphEnterLandscapeMode.addGraphEnterLandscapeMode(this.eventGraphEnterLandscapeMode)
-    GraphExitLandscapeMode.addGraphExitLandscapeMode(this.eventGraphExitLandscapeMode)
+    GraphEnterLandscapeMode.addGraphEnterLandscapeMode(this.eventGraphEnterLandscapeMode);
+    GraphExitLandscapeMode.addGraphExitLandscapeMode(this.eventGraphExitLandscapeMode);
 
-    //Here is the Trick
     const {navigation} = this.props;
-    //Adding an event listner om focus
-    //So whenever the screen will have focus it will set the state to zero
-
-    
 
     this.focusListener = navigation.addListener('didFocus', () => {
+      console.log('[TIMER_DEBUG] Stats: didFocus - setting CURRENTLY_SELECTED = stats');
       AlertsNumberChanged.emit('ALERTS__NUMBER_CHANGED');
-      setStateItem(DB_KEY.CURRENTLY_SELECTED,'stats')
+      setStateItem(DB_KEY.CURRENTLY_SELECTED, 'stats');
    
       let selectedDeviceId = getStateItem(DB_KEY.SELECTED_DEVICE_ID);
       if (selectedDeviceId === null) {
@@ -263,20 +292,9 @@ export default class Stats extends Component {
       AppInBackground.addAppInBackgroundListener(this.eventAppInBackground);
       AppInForeground.addAppInForegroundListener(this.eventAppInForeground);
       this.setState({statsTheme: getStateItem(DB_KEY.STATS_THEME)});
-      this.fetchLatestData();
-      var lteinterval = getStateItem('lteInterval')
-      if (lteinterval === undefined || lteinterval === null) {
-        lteinterval = 120
-      }
-  
-      let lteIntervalMiliSeconds = lteinterval * 60 * 1000
-      let timeInterval = isEndPointCardio() === true ? 10000 : lteIntervalMiliSeconds // 1o seconds and 200 seconds
-     
-      this._interval = setInterval(() => {
-        this.fetchLatestData();
-      }, timeInterval);
-      if(this.carousel !== null &&  this.carousel !== undefined){
-        let residentsInfo = getFilteredData(); //getStateItem(DB_KEY.RESIDENT_DATA)
+      this.startTimers();
+      if (this.carousel !== null && this.carousel !== undefined) {
+        let residentsInfo = getFilteredData();
         if (residentsInfo !== null) {
           let residentsArray = getStateItem(DB_KEY.GALEN)
             ? residentsInfo
@@ -292,19 +310,17 @@ export default class Stats extends Component {
       }
     });
 
-    this.blurListener = navigation.addListener('didBlur', () => {
-      let array = getFilteredData(); //getStateItem(DB_KEY.RESIDENT_DATA)
-      clearInterval(this._interval);
-      clearInterval(this._intervalSVital);
-      if (this.state.statsList.length > 0) {
-       // alert('Stopping stats interval')
-       this.setState({residentData: null,refresh : !this.state.refresh});
-        clearInterval(this._interval);
-        clearInterval(this._intervalSVital);
-      }
+    this.willBlurListener = navigation.addListener('willBlur', () => {
+      console.log('[TIMER_DEBUG] Stats: willBlur - stopping timers');
+      this.stopTimers();
+    });
 
-      AppInBackground.removeAppInBackgroundListener(this.eventAppInBackground);
-      AppInForeground.removeAppInForegroundListener(this.eventAppInForeground);
+    this.blurListener = navigation.addListener('didBlur', () => {
+      console.log('[TIMER_DEBUG] Stats: didBlur - stopping timers');
+      this.stopTimers();
+      if (this.state.statsList.length > 0) {
+        this.setState({residentData: null, refresh: !this.state.refresh});
+      }
     });
      
    
@@ -764,12 +780,14 @@ export default class Stats extends Component {
     }
   }
   async fetchLatestData() {
-    const {statsTheme} = this.state
-    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED)
-  if (currentlySelected !== 'stats') {
-    clearInterval(this._intervalSVital);
-   clearInterval(this._interval);
-  }
+    let currentlySelected = getStateItem(DB_KEY.CURRENTLY_SELECTED);
+    if (currentlySelected !== 'stats') {
+      console.log('[TIMER_DEBUG] Stats: fetchLatestData BLOCKED because CURRENTLY_SELECTED is', currentlySelected);
+      this.stopTimers();
+      return;
+    }
+    console.log('[TIMER_DEBUG] Stats: fetchLatestData EXECUTING api call');
+    const {statsTheme} = this.state;
     this.getOfflineStatus();
 
     this.fetchLatestDataTimestampNewLogic();
@@ -985,9 +1003,26 @@ export default class Stats extends Component {
   }
 
   componentWillUnmount() {
+    console.log('[TIMER_DEBUG] Stats: componentWillUnmount - cleaning up timers and listeners');
+    this.stopTimers();
     this.setState({isResidentTapped: false});
-    GraphEnterLandscapeMode.removeGraphEnterLandscapeMode(this.eventGraphEnterLandscapeMode)
-    GraphExitLandscapeMode.removeGraphExitLandscapeMode(this.eventGraphExitLandscapeMode)
+    GraphEnterLandscapeMode.removeGraphEnterLandscapeMode(this.eventGraphEnterLandscapeMode);
+    GraphExitLandscapeMode.removeGraphExitLandscapeMode(this.eventGraphExitLandscapeMode);
+    if (this.focusListener) this.focusListener.remove();
+    if (this.blurListener) this.blurListener.remove();
+    if (this.willBlurListener) this.willBlurListener.remove();
+    AppInBackground.removeAppInBackgroundListener(this.eventAppInBackground);
+    AppInForeground.removeAppInForegroundListener(this.eventAppInForeground);
+    ResidentsChange.removeResidentsChangeListener(this.residentsChange);
+    ThemeChange.removeThemeChangeListener(this.themeChange);
+    ResidentsTapped.removeResidentsTappedListener(this.residentsTapped);
+    UploadImageSelected.removeUploadImageSelectedListener(
+      this.eventUploadImageSelected,
+    );
+    StatsTabTapped.removeStatsTabTappedListener(this.eventStatsTabTapped);
+    OrientationDidChange.removeOrientationDidChangeListener(
+      this.eventOrientationDidChange,
+    );
   }
 
   bellIconTapped() {
