@@ -34,4 +34,21 @@ export function checkGenericNoType(value) {
 } 
 
 
+
+export function getCurrentTime() {
+    const now = new Date();
+
+    let hours = now.getHours();
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+
+    const ampm = hours >= 12 ? 'pm' : 'am';
+
+    hours = hours % 12;
+    hours = hours || 12;
+
+    return `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+}
+
+
 export  const API_TIMEOUT = { INTERVAL : 4000000000000000000000000000000000000000000000000000000000000000000000}

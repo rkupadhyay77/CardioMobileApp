@@ -135,19 +135,28 @@ const styles = StyleSheet.create({
   },
   eventLogContainer: {
     flex: 1,
-   
   },
-  rowContainer :{
-    height:50, 
-    justifyContent:'center',
-},
-seprator :{
-  width : width*0.90 - 2,
-  height : 1,
-  backgroundColor : 'rgba(21,21,21,0.6)',
-  position:'absolute',
-  top : 49
-},
+  rowContainer: {
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(150, 150, 150, 0.25)',
+  },
+  logRowContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  timeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    minWidth: 78,
+  },
+  descriptionText: {
+    fontSize: 12,
+    fontWeight: '400',
+    flex: 1,
+    marginLeft: 6,
+    lineHeight: 16,
+  },
 });
 
 export default styles;

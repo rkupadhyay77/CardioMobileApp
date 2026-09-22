@@ -18,6 +18,7 @@ import setStateItem from '../../../state/setState/setStateItem';
 import {DB_KEY} from '../../../common/helper/keys';
 import ThemeChange from '../../../state/emitters/themeChange';
 import EventLoggingChange from '../../../state/emitters/eventLoggingChange';
+import LogFileManager from '../../helper/logFileManager';
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -55,14 +56,13 @@ export default class FloatingWindow extends Component {
   }
 
   componentDidMount() {
-   
+    LogFileManager.startSession();
     ThemeChange.addThemeChangeListener(this.themeChangeListener);
     EventLoggingChange.addEventLoggingChangeListener(this.eventLoggingChangeListener);
   }
 
-
-
   componentWillUnmount() {
+    LogFileManager.stopSessionAndSaveFile();
     ThemeChange.removeThemeChangeListener(this.themeChangeListener);
     EventLoggingChange.removeEventLoggingChangeListener(this.eventLoggingChangeListener);
     this.pan.removeAllListeners();
@@ -75,7 +75,10 @@ export default class FloatingWindow extends Component {
 
   eventLoggingChangeListener() {
     const eventLogArray = getStateItem(DB_KEY.EVENT_LOG_ARRAY) || [];
-    this.setState({eventLogArray: eventLogArray});
+    this.setState({eventLogArray: [...eventLogArray]});
+    if (eventLogArray.length > 0) {
+      LogFileManager.addEvent(eventLogArray[0]);
+    }
   }
 
   initPanResponder() {
@@ -159,36 +162,48 @@ export default class FloatingWindow extends Component {
   }
 
   handleClose() {
+    LogFileManager.stopSessionAndSaveFile();
     if (this.props.onClose) {
       this.props.onClose();
     }
   }
 
-   _renderRow(item){
-          return (
-              <View style={styles.rowContainer}>
-               <View style={styles.seprator}></View>
-               <View style={{flexDirection:'row'}}>
-               <Text>{item._time}</Text>
-                  <Text style={styles.descriptionText}>{item.description}</Text>
-                  </View>
-              </View>
-          )
-      }
+  _renderRow(item) {
+    const {isDarkMode} = this.state;
+    const timeColor = isDarkMode ? '#8E8E93' : '#636366';
+    const descColor = isDarkMode ? '#E5E5EA' : '#1C1C1E';
+
+    return (
+      <View style={styles.rowContainer}>
+        <View style={styles.logRowContent}>
+          <Text
+            allowFontScaling={false}
+            style={[styles.timeText, {color: timeColor}]}>
+            {item._time}
+          </Text>
+          <Text
+            allowFontScaling={false}
+            style={[styles.descriptionText, {color: descColor}]}>
+            {item.description}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
  _renderLogEvent() {
     const {eventLogArray} = this.state;
     return(
       <View style={styles.eventLogContainer}>
-      <FlatList style={styles.eventLogContainer}
-                          data={eventLogArray}
-                          renderItem={({item}) => (
-                              this._renderRow(item)
-                          )}
-                          keyExtractor={(item, index) => index.toString()} 
-                           >      
-      
-                      </FlatList>
+      <FlatList
+        style={styles.eventLogContainer}
+        data={eventLogArray}
+        extraData={eventLogArray}
+        renderItem={({item}) => (
+            this._renderRow(item)
+        )}
+        keyExtractor={(item, index) => index.toString()} 
+      />
       </View>
     )
   }

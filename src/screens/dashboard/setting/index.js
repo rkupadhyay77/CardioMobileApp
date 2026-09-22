@@ -292,6 +292,15 @@ termsTapped(){
     let nav = getStateItem(DB_KEY.LOGIN_NAV)
     nav.navigate('NotificationScreen')
   }
+
+  logsFileTapped(){
+    let nav = getStateItem(DB_KEY.LOGIN_NAV)
+    if (nav) {
+      nav.navigate('LogsFileScreen')
+    } else if (this.props.navigation) {
+      this.props.navigation.navigate('LogsFileScreen')
+    }
+  }
     render(){
       const {themeChanged,isFahrenheit,textNotification,statsTheme} = this.state
     
@@ -312,6 +321,7 @@ termsTapped(){
               <SettingRow title={'Video Tutorial'}  selectedType={'info/video/tutorial'} onPress={()=> this.handleVideoClick()} />
               {this._renderDeleteUser()}
              
+              <SettingRow title={'Logs File'} isIcon = {true} onPress={()=> this.logsFileTapped()} />
               <SettingRow title={'Log Out'}  onPress={()=> this.logoutTapped()} />
               <SettingRow title={'Reserved'}  isSwitch = {true}  />
               </ScrollView>

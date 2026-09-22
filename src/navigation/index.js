@@ -35,6 +35,7 @@ import MedicalTextScreen from '../screens/desclaimerText';
 import PracticeDropdown from '../screens/practiceDropdown';
 import NewLogin from '../screens/login/NewLogin';
 import TempLogger from '../screens/tempLogger';
+import LogsFileScreen from '../screens/logsFile';
 
 
 const config = {
@@ -84,6 +85,7 @@ const AppNavigator = createStackNavigator({
   NotificationScreen:{screen:NotificationScreen},
   MfgInfoScreen:{screen:MfgInfoScreen},
   MedicalTextScreen:{screen:MedicalTextScreen},
+  LogsFileScreen:{screen:LogsFileScreen},
 },{
   headerMode: 'none',
   navigationOptions: {

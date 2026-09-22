@@ -72,8 +72,8 @@ android {
         applicationId "com.advancetelesensor.cardio"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 215
-        versionName "2.1.19"
+        versionCode 216
+        versionName "2.1.31"
     }
 
     signingConfigs {

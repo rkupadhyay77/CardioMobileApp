@@ -47,6 +47,7 @@ import FacilityScreenSheet from './src/screens/facilityScreen';
 import messaging from '@react-native-firebase/messaging';
 import {GraphTypeChanged, FloatingWindowChanged} from './src/state/emitters';
 import FloatingWindow from './src/common/component/floatingWindow';
+import LogFileManager from './src/common/helper/logFileManager';
 
 Sentry.init({
   dsn: 'https://fff295ee731b84ea7bf0e65a094904a3@o4507294527717376.ingest.us.sentry.io/4507368780660736',
@@ -183,6 +184,9 @@ class App extends React.Component {
         floatingWindowData: payload.data || null,
       }));
     } else if (payload && payload.visible !== undefined) {
+      if (!payload.visible) {
+        LogFileManager.stopSessionAndSaveFile();
+      }
       this.setState({
         showFloatingWindow: Boolean(payload.visible && isEventLoggingEnabled),
         floatingWindowData: payload.data || null,
@@ -517,6 +521,7 @@ class App extends React.Component {
         visible={showFloatingWindow && isEventLoggingEnabled}
         data={floatingWindowData}
         onClose={() => {
+          LogFileManager.stopSessionAndSaveFile();
           setStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED, false);
           this.setState({showFloatingWindow: false});
           FloatingWindowChanged.hide();

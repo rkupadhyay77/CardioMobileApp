@@ -57,7 +57,8 @@ import { getBaseURL } from '../../../../galenApiLibrary/config/getBaseURL';
 const {width, height} = Dimensions.get('window');
 import {ReportsEnabledChanged, ReportsDisableChanged} from '../../../state/emitters'
 import { isEndPointCardio } from '../../../../galenApiLibrary/config/getBaseURL';
-import { isPLotViewTheme } from '../../../common/helper/util';
+import { isPLotViewTheme, getCurrentTime } from '../../../common/helper/util';
+import EventLoggingChange from '../../../state/emitters/eventLoggingChange';
 
 function immutableMove(arr, from, to) {
   return arr.reduce((prev, current, idx, self) => {
@@ -424,6 +425,7 @@ export default class Residents extends Component {
   }
 
   componentDidMount() {
+    setStateItem(DB_KEY.CURRENTLY_SELECTED, 'residents');
     //Here is the Trick
     const {navigation} = this.props;
     //Adding an event listner om focus
@@ -890,25 +892,35 @@ export default class Residents extends Component {
     }
     console.log('[TIMER_DEBUG] Residents: fetchLatestData EXECUTING api call');
 
-     
-    let userListArray = [];
-    let userArray = getStateItem(DB_KEY.USERS_LIST_ARRAY);
-
-    userArray.map(content => {
-      if (content.fullName.length > 0) {
-        userListArray.push(content.userId);
-      }
-    });
-
     let user = getStateItem(DB_KEY.USER);
 
- 
     let currentTimeStamp = new Date().getTime();
     setStateItem(DB_KEY.LAST_SYNCED, currentTimeStamp);
-   
-    let res = await fetchLatestDataForOwner(user.userId)
-    console.log("res: fetchLatestDataPVital: length:"+res.length)
-    if (res.length > 0) {
+
+    let eventLogArray = [...(getStateItem(DB_KEY.EVENT_LOG_ARRAY) || [])];
+    eventLogArray.unshift({description: "Residents: Fetching latest data api start", _time: getCurrentTime()});
+    setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray);
+    EventLoggingChange.emit('EVENT_LOGGING_CHANGED');
+
+    let res = null;
+    try {
+      if (user && user.userId) {
+        res = await fetchLatestDataForOwner(user.userId);
+      }
+    } catch (apiError) {
+      console.log('Residents: fetchLatestDataForOwner error:', apiError);
+    }
+
+    let eventLogArray2 = [...(getStateItem(DB_KEY.EVENT_LOG_ARRAY) || [])];
+    let resStatus = Array.isArray(res)
+      ? (res.length > 0 ? `200 (${res.length} items)` : '200 (Empty)')
+      : (res ? '200' : 'Error');
+    eventLogArray2.unshift({description: "Residents: Fetching latest got api response: " + resStatus, _time: getCurrentTime()});
+    setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray2);
+    EventLoggingChange.emit('EVENT_LOGGING_CHANGED');
+
+    console.log("res: fetchLatestDataPVital: length:" + (res && res.length ? res.length : 0));
+    if (res && Array.isArray(res) && res.length > 0) {
        var offlineSensorArray = [];
          for (var index = 0; index < this.state.residentsList.length; index++) {
             let dataAt = this.state.residentsList[index];
@@ -958,11 +970,13 @@ export default class Residents extends Component {
             let userListArray = [];
             let userArray = getStateItem(DB_KEY.USERS_LIST_ARRAY);
         
-            userArray.map(content => {
-              if (content.fullName.length > 0) {
-                userListArray.push(content.userId);
-              }
-            });
+            if (userArray && Array.isArray(userArray)) {
+              userArray.forEach(content => {
+                if (content && content.fullName && content.fullName.length > 0) {
+                  userListArray.push(content.userId);
+                }
+              });
+            }
             console.log("offlineSensorArray:"+JSON.stringify(offlineSensorArray))
             writeOnlineBit(userListArray, offlineSensorArray)
             //let offlineDataWriter = new OfflineDataWriter()

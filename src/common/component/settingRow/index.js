@@ -18,6 +18,7 @@ import { DB_KEY } from '../../helper/keys';
 import Icon from 'react-native-vector-icons/Entypo'
 import setStateItem from '../../../state/setState/setStateItem';
 import { FloatingWindowChanged } from '../../../state/emitters';
+import LogFileManager from '../../helper/logFileManager';
 
 
 const {width , height }  = Dimensions.get('window')
@@ -62,6 +63,7 @@ export default class SettingRow extends Component {
     enableEventLogging() {
         setStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED, true);
         setStateItem(DB_KEY.EVENT_LOG_ARRAY, []);
+        LogFileManager.startSession();
         this.setState({
             isEventLoggingEnabled: true,
             showCodeModal: false,
@@ -72,6 +74,7 @@ export default class SettingRow extends Component {
     }
 
     disableEventLogging() {
+        LogFileManager.stopSessionAndSaveFile();
         setStateItem(DB_KEY.IS_EVENT_LOGIN_ENABLED, false);
         setStateItem(DB_KEY.EVENT_LOG_ARRAY, []);
         this.setState({
@@ -84,7 +87,7 @@ export default class SettingRow extends Component {
     }
 
     verifyCode(code) {
-        if (code && code.trim() === 'Wayne') {
+        if (code && code.trim().toLowerCase() === 'wayne') {
             this.enableEventLogging();
             return true;
         } else {

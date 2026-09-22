@@ -48,7 +48,7 @@ import setStateItem from '../../../state/setState/setStateItem';
 import ImagePicker from 'react-native-image-crop-picker';
 
 import DatabaseManager from '../../../Database';
-import {getFilteredData, checkGenericNoType} from '../../../common/helper/util';
+import {getFilteredData, checkGenericNoType,getCurrentTime} from '../../../common/helper/util';
 
 const SLIDER_1_FIRST_ITEM = 0;
 
@@ -58,6 +58,7 @@ import ButtonK from '../../../common/component/Button';
 import {executeApiWith} from '../../../api'
 const {width, height} = Dimensions.get('window');
 import getHeaders from '../../../../galenApiLibrary/config/getHeader';
+import EventLoggingChange from '../../../state/emitters/eventLoggingChange';
 import {fetchLatestDataPVital, fetchLastUnreadAlertCount} from '../../../../galenApiLibrary/residents';
 import FDAStatsRow from '../../../common/component/fdaStatsRow';
 import { getBaseURL } from '../../../../galenApiLibrary/config/getBaseURL';
@@ -455,6 +456,11 @@ export default class Stats extends Component {
     const {statsList} = this.state;
     let userListArray = this.getUserListArray()
      let res = await fetchLatestDataPVital(userListArray)
+     let eventLogArray = getStateItem(DB_KEY.EVENT_LOG_ARRAY) || []
+     let statusDesc = Array.isArray(res) ? (res.length > 0 ? `200 (${res.length} records)` : '200 (Empty)') : 'Error'
+     eventLogArray.unshift({description: "Stats: Fetch latest data api response: " + statusDesc, _time: getCurrentTime()})
+     setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray)
+     EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
         if (res.length > 0) {
             for (var index = 0; index < this.state.statsList.length; index++) {
                 let dataAt = this.state.statsList[index];
@@ -789,6 +795,11 @@ export default class Stats extends Component {
     console.log('[TIMER_DEBUG] Stats: fetchLatestData EXECUTING api call');
     const {statsTheme} = this.state;
     this.getOfflineStatus();
+
+    let eventLogArray = getStateItem(DB_KEY.EVENT_LOG_ARRAY) || []
+    eventLogArray.unshift({description: "Stats: Fetch latest data api start..", _time: getCurrentTime()})
+    setStateItem(DB_KEY.EVENT_LOG_ARRAY, eventLogArray)
+    EventLoggingChange.emit('EVENT_LOGGING_CHANGED')
 
     this.fetchLatestDataTimestampNewLogic();
     if (statsTheme === 'Classic View'){
