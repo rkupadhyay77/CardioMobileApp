@@ -321,8 +321,9 @@ termsTapped(){
               <SettingRow title={'Video Tutorial'}  selectedType={'info/video/tutorial'} onPress={()=> this.handleVideoClick()} />
               {this._renderDeleteUser()}
              
-              <SettingRow title={'Logs File'} isIcon = {true} onPress={()=> this.logsFileTapped()} />
               <SettingRow title={'Log Out'}  onPress={()=> this.logoutTapped()} />
+              <SettingRow title={'Logs File'} isIcon = {true} onPress={()=> this.logsFileTapped()} />
+             
               <SettingRow title={'Reserved'}  isSwitch = {true}  />
               </ScrollView>
               {this._renderLoader()}

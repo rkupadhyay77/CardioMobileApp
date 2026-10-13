@@ -58,7 +58,7 @@ const STATE = {
   isPrefEnabled: true,
   isEventLoggingEnabled: false,
   subsciptionsArrayList: [],
-  version: '2.1.31',
+  version: '2.1.35',
   letInterval: 120,
   bufferValue: 5,
   reportsUpdatedAt: '',
